@@ -22,11 +22,11 @@ Developed using python3.10, see `requirements.txt` for detail.
     conda create --name lamost-calibration --file requirements.txt
     ```
     Check if your proxy service was disabled if something goes wrong while installing packages.
-3. Make sure you're in the correct conda environment before excute the program. To activate a conda environment (e.g. `lamost-calibration`), simply excute
+3. Make sure you're in the correct conda environment before execute the program. To activate a conda environment (e.g. `lamost-calibration`), simply execute
     ```
     conda activate lamost-calibration
     ```
-    To exit an environment, excute
+    To exit an environment, execute
     ```
     conda deactivate
     ```
