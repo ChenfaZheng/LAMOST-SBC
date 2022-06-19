@@ -1,0 +1,17 @@
+# pdf files
+*.pdf
+
+# pycache files
+*.pyc
+__pycache__
+
+# zip files
+*.zip
+
+# test files
+test.fits
+test.ipynb
+
+# misc
+exp1.jpg
+exp2.jpg
