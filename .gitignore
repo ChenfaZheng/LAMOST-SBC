@@ -12,6 +12,9 @@ __pycache__
 test.fits
 test.ipynb
 
+# catalog
+catalogs/
+
 # misc
 exp1.jpg
 exp2.jpg

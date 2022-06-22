@@ -1,11 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import fits
+from astropy.table import Table
 
 
 def read_spectrum(fpath: str, band: str):
     """
     Read a spectrum from a fits file.
+    Return its wavelength and flux, and observation ID.
     """
     assert band in ['u', 'g', 'r', 'i', 'z'], 'Band must be one of u, g, r, i, z.'
     band_idx_dict = {'u': 0, 'g': 1, 'r': 2, 'i': 3, 'z': 4}
@@ -17,19 +19,84 @@ def read_spectrum(fpath: str, band: str):
     COEFF1 = float(header['COEFF1'])
     wl = 10**(COEFF0 + COEFF1 * np.arange(N))
     flux = data[band_idx_dict[band], :]
+    obs_id = int(header['OBSID'])
+    return wl, flux, obs_id
+
+
+def gen_model_spectrum_name(
+        ins: int, 
+        metal: float, 
+        carbon: float, 
+        alpha: float, 
+        teff: float, 
+        logg: float,
+    ):
+    """
+    Generate the model spectrum name.
+    Spectrum from BOSZ stellar model.
+
+    Args should be already grided 
+    (see Table 1 in Bohlin et al. 2017, AJ, 153, 234 for detail).
+    """
+    arg_metal = 'mp' if metal >= 0 else 'mm'
+    arg_carbon = 'cp' if carbon >= 0 else 'cm'
+    arg_alpha = 'op' if alpha >= 0 else 'om'
+    round_away = lambda x: int(np.ceil(x)) if x >= 0 else int(np.floor(x))
+    fname = ''.join([                               # see Appendix in Bohlin et al. 2017
+        'a',                                        # the source is an ATLAS model
+        f'{arg_metal}{abs(round_away(10 * metal)):02d}', # the metalicity
+        f'{arg_carbon}{abs(round_away(10 * carbon)):02d}',    # the carbon content
+        f'{arg_alpha}{abs(round_away(10 * alpha)):02d}',      # the alpha content
+        f't{round_away(teff):d}',                        # the effective temperature
+        f'g{round_away(10 * logg):02d}',                 # the surface gravity
+        'v20',                                      # the microturbulent velocity, always 20 for 2 km/s
+        'mod', 
+        'rt0',                                      # the rotational broadening; vrot is always 0
+        f'b{round_away(ins):d}',                         # the spectral resolution R
+        'rs',                                       # the spectra are resampled at two points per resolution element
+        '.fits',
+    ])
+    return fname
+
+
+def read_model_spectrum(fpath: str):
+    """
+    Read a model spectrum.
+
+    Note the flux in the fits file is surface brightness $H$.
+    Hence $F = \pi * H$ (see eq.2 in Bohlin et al. 2017, AJ, 153, 234).
+    """
+    tab = Table.read(fpath)
+    wl = np.array(tab['Wavelength'])
+    flux = np.pi * np.array(tab['SpecificIntensity'])
     return wl, flux
 
 
-def read_template_spectrum(band: str):
+def read_catalog(fpath: str):
     """
-    Read a template spectrum.
+    Read the catalog.
+    """
+    return Table.read(fpath)
 
-    To be implemented.
-    For now, we use the ID: 2314120
+
+def get_spectrum_args_from_catalog(cata_path: str, obs_id: int):
     """
-    fpath = './spectrums/2314120.fits'
-    wl, flux = read_spectrum(fpath, band)
-    return wl, flux
+    Get the spectrum arguments from 
+    LAMOST LRS Stellar Parameter Catalog of A, F, G and K Stars.
+    
+    The catalog is downloaded from the DR7 website.
+    For detail see https://dr7.lamost.org/v2.0/doc/lr-data-production-description#s3
+
+    TODO : Optimize the speed of this function.
+    The catalog is readed every time.
+    """
+    cata = Table.read(cata_path)
+    cataline = cata[cata['obsid'] == obs_id]
+    metal = cataline['feh'][0]
+    alpha = cataline['alpha_m'][0]
+    teff = cataline['teff'][0]
+    logg = cataline['logg'][0]
+    return metal, alpha, teff, logg
 
 
 def wave_cut(wl, flux, wl_min, wl_max):

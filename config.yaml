@@ -1,0 +1,25 @@
+# file path settings
+spectrum_dir: ./spectrums/
+model_dir: ./models/
+catalog_path: ./catalogs/dr7_v2.0_LRS_stellar.fits
+figure_dir: ./figures
+
+# stellar parameters
+instrumental_broadening: 1800
+carbon: 0.0
+
+# analysis parameters
+band: g
+moving_average_window: 51
+cut_min: 3900
+cut_max: 9100
+wl_min: 4000
+wl_max: 9000
+wl_step: 1
+v_shift_min: -1000
+v_shift_max: 1000
+v_shift_step: 5
+
+# plot parameters
+plot_min: 1000
+plot_max: 12000
