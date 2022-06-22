@@ -3,6 +3,7 @@ spectrum_dir: ./spectrums/
 model_dir: ./models/
 catalog_path: ./catalogs/dr7_v2.0_LRS_stellar.fits
 figure_dir: ./figures
+result_path: ./results.txt
 
 # stellar parameters
 instrumental_broadening: 1800

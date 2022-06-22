@@ -17,8 +17,9 @@ def read_spectrum(fpath: str, band: str):
     N = data.shape[1]
     COEFF0 = float(header['COEFF0'])
     COEFF1 = float(header['COEFF1'])
-    wl = 10**(COEFF0 + COEFF1 * np.arange(N))
-    flux = data[band_idx_dict[band], :]
+    # wl = 10**(COEFF0 + COEFF1 * np.arange(N))
+    wl = data[2, :]
+    flux = data[0, :]
     obs_id = int(header['OBSID'])
     return wl, flux, obs_id
 
@@ -121,10 +122,12 @@ def normalization(wl, flux):
     """
     Normalize the spectrum.
     """
-    mean = np.mean(flux)
-    std = np.std(flux)
-    flux = (flux - mean) / std
-    return wl, flux
+    max_val = np.max(flux)
+    return wl, flux / max_val
+    # mean = np.mean(flux)
+    # std = np.std(flux)
+    # flux = (flux - mean) / std
+    # return wl, flux
 
 
 def shift_with_velocity(wl, v):

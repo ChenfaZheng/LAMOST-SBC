@@ -21,20 +21,16 @@ import yaml
 import os
 
 
-def load_spectrum(save_dir):
-    files = os.listdir(save_dir)
-    files = [f for f in files if f.endswith('.fits')]
-    fpaths = [os.path.join(save_dir, f) for f in files]
-    return fpaths
-
-
 def download_spectrum():
     save_dir = './spectrums/'
     obs_ids = [
         2314120, 
-        101008, 
-        101009, 
-        101030, 
+        # 101008, 
+        # 101017, 
+        # 19210055, 
+        # 27904160, 
+        # 48013172, 
+        # 55203160, 
     ]
     for obs_id in obs_ids:
         download_fits_from_dr7(obs_id, save_dir)
@@ -145,6 +141,7 @@ def main():
     fig_save_dir = config['figure_dir']
     if not os.path.exists(fig_save_dir):
         os.makedirs(fig_save_dir)
+    result_path = config['result_path']
     
     ins = float(config['instrumental_broadening'])  # Instrumental broadening
     carbon = float(config['carbon'])  # Carbon
@@ -169,6 +166,9 @@ def main():
     files = [f for f in files if f.endswith('.fits')]
     fpaths = [os.path.join(spec_dir, f) for f in files]
     nfiles = len(fpaths)
+    results_id = []
+    results_corr = []
+    results_v = []
     for idx, fpath in enumerate(fpaths):
         print(f'Now {idx+1}/{nfiles} ', fpath)
         wl, flux, obs_id = read_spectrum(fpath, band=band)
@@ -249,7 +249,7 @@ def main():
         fig1 = plt.figure(figsize=(10, 5))
         ax1 = fig1.add_subplot(211)
         ax1.plot(wl, flux, 'r.', alpha=0.8, label='target normalized')
-        ax1.plot(wlm_best, fluxm_best, 'k-', alpha=0.5, label='model best')
+        ax1.plot(wlm_best, fluxm_best, 'k-', alpha=0.5, label=f'model v={v_shift_best} km/s')
         ax1.set_xlabel('wavelength (A)')
         ax1.set_ylabel('flux')
         ax1.set_xlim(plot_min, plot_max)
@@ -274,6 +274,15 @@ def main():
         plt.tight_layout()
         fig2.savefig(os.path.join(fig_save_dir, f'{obs_id:d}_correlation.png'), dpi=300)
         plt.close()
+
+        # save the result
+        results_id.append(obs_id)
+        results_v.append(v_shift_best)
+        results_corr.append(corrs[corr_max_arg])
+    with open(result_path, 'w') as f:
+        f.write('obsid,v_shift,corr\n')
+        for i in range(len(results_id)):
+            f.write(f'{results_id[i]},{results_v[i]},{results_corr[i]}\n')
 
 
 if __name__ == '__main__':
