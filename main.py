@@ -145,7 +145,6 @@ def main():
     
     ins = float(config['instrumental_broadening'])  # Instrumental broadening
     carbon = float(config['carbon'])  # Carbon
-    band = config['band']  # Band
     mv_window = int(config['moving_average_window'])  # moving average window
 
     cut_min, cut_max = float(config['cut_min']), float(config['cut_max'])
@@ -171,7 +170,7 @@ def main():
     results_v = []
     for idx, fpath in enumerate(fpaths):
         print(f'Now {idx+1}/{nfiles} ', fpath)
-        wl, flux, obs_id = read_spectrum(fpath, band=band)
+        wl, flux, obs_id = read_spectrum(fpath)
         # get the model spectrum
         cataline = cata[cata['obsid'] == obs_id]
         if len(cataline) == 0:

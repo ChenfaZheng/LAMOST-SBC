@@ -4,20 +4,17 @@ from astropy.io import fits
 from astropy.table import Table
 
 
-def read_spectrum(fpath: str, band: str):
+def read_spectrum(fpath: str):
     """
     Read a spectrum from a fits file.
     Return its wavelength and flux, and observation ID.
     """
-    assert band in ['u', 'g', 'r', 'i', 'z'], 'Band must be one of u, g, r, i, z.'
-    band_idx_dict = {'u': 0, 'g': 1, 'r': 2, 'i': 3, 'z': 4}
     with fits.open(fpath) as hdul:
         data = hdul[0].data
         header = hdul[0].header
     N = data.shape[1]
     COEFF0 = float(header['COEFF0'])
     COEFF1 = float(header['COEFF1'])
-    # wl = 10**(COEFF0 + COEFF1 * np.arange(N))
     wl = data[2, :]
     flux = data[0, :]
     obs_id = int(header['OBSID'])

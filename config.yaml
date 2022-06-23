@@ -10,7 +10,6 @@ instrumental_broadening: 1800
 carbon: 0.0
 
 # analysis parameters
-band: g
 moving_average_window: 51
 cut_min: 3900
 cut_max: 9100
