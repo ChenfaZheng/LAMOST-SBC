@@ -162,6 +162,7 @@ if __name__ == '__main__':
     carbon = float(config['carbon'])  # Carbon
     mv_window = int(config['moving_average_window'])  # moving average window
     norm_type = config['norm_type']   # normalization type
+    opt_method = config['opt_method']  # optimization method
 
     cut_min, cut_max = float(config['cut_min']), float(config['cut_max'])
     wl_min, wl_max, wl_step = float(config['wl_min']), float(config['wl_max']), float(config['wl_step'])
@@ -287,14 +288,32 @@ if __name__ == '__main__':
             corr_peak_mask = (corr_idxs >= corr_max_arg - opt_width) & (corr_idxs <= corr_max_arg + opt_width)
             corr_seg_peak = corrs_seg[corr_peak_mask]
             v_shift_peak = v_shifts[corr_peak_mask]
-            # order 2 polynomial fit
-            peak_paras = np.polyfit(v_shift_peak, corr_seg_peak, 2)
-            # y = a*x**2 + b*x + c
-            a, b, c = peak_paras
-            v_peak = -b / (2 * a)
-            corr_peak = a * v_peak ** 2 + b * v_peak + c
-            if a > 0:
-                print(f'order 2 polynomial fit failed to find a peak with a < 0, use the max value instead')
+            # polynomial fit
+            fit_failed_signal = False
+            if opt_method in ['quadratic']:
+                # quadratic (2nd order) polynomial fit
+                peak_paras = np.polyfit(v_shift_peak, corr_seg_peak, 2)
+                # y = a*x**2 + b*x + c
+                a, b, c = peak_paras
+                v_peak = -b / (2 * a)
+                corr_peak = a * v_peak ** 2 + b * v_peak + c
+                if a >= 0:
+                    fit_failed_signal = True
+            elif opt_method in ['cubic']:
+                # cubic (3nd order) polynomial fit
+                peak_paras = np.polyfit(v_shift_peak, corr_seg_peak, 3)
+                # y = a*x**3 + b*x**2 + c*x + d
+                a, b, c, d = peak_paras
+                critical_term = 4*b**2 - 12*a*c
+                if critical_term < 0:
+                    fit_failed_signal = True
+                else:
+                    v_peak = (-2*b - np.sqrt(critical_term)) / (6*a)
+                    corr_peak = a * v_peak ** 3 + b * v_peak ** 2 + c * v_peak + d
+            else:
+                raise ValueError(f'Unknown opt_method: {opt_method}')
+            if fit_failed_signal:
+                print(f'polynomial fit failed to find a peak, use the max value instead')
                 v_peak = v_shifts[corr_max_arg]
                 corr_peak = corrs_seg[corr_max_arg]
             elif v_peak < v_shift_min or v_peak > v_shift_max:
@@ -375,14 +394,14 @@ if __name__ == '__main__':
         results_corr_bests.append(corr_peaks)
         results_v_lamost.append(rv)
 
-    result_path = os.path.join(fig_save_dir, 'results.txt')
+    result_path = os.path.join(result_dir, 'results.txt')
     with open(result_path, 'w', encoding='utf-8') as f:
         f.write('obsid,v_shift_mean,v_shift_std,corr_mean,corr_std,v_lamost,\n')
         for i in range(len(results_id)):
             f.write(f'{results_id[i]:d},{results_v_mean[i]:.3f},{results_v_std[i]:.3f},{results_corr_mean[i]:.3f},{results_corr_std[i]:.3f},{results_v_lamost[i]:.3f},')
             f.write('\n')
 
-    result_v_path = os.path.join(fig_save_dir, 'results_v.txt')
+    result_v_path = os.path.join(result_dir, 'results_v.txt')
     with open(result_v_path, 'w', encoding='utf-8') as f:
         f.write('obsid,')
         for i in range(len(results_v_bests[0])):
@@ -394,7 +413,7 @@ if __name__ == '__main__':
                 f.write(f'{v:.3f},')
             f.write('\n')
 
-    result_corr_path = os.path.join(fig_save_dir, 'results_corr.txt')
+    result_corr_path = os.path.join(result_dir, 'results_corr.txt')
     with open(result_corr_path, 'w', encoding='utf-8') as f:
         f.write('obsid,')
         for i in range(len(results_corr_bests[0])):
