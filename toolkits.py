@@ -4,6 +4,46 @@ from astropy.io import fits
 from astropy.table import Table
 
 
+def read_results(fpath: str):
+    """
+    Read the results from a file.
+    """
+    result = np.loadtxt(
+        fpath, 
+        delimiter=',', 
+        skiprows=1, 
+        usecols=[0, 1, 2, 3, 4, 5, 6, 7], 
+        dtype={
+            'names': ('obsid', 'v_shift_mean', 'v_shift_std', 'corr_mean', 'corr_std', 'v_lamost', 'spid', 'fiberid'),
+            'formats': ('i', 'f', 'f', 'f', 'f', 'f', 'i', 'i')
+        }
+    )
+    return result
+
+
+def read_list_file(fpath: str):
+    """
+    Read the list file.
+    """
+    with open(fpath, 'r') as f:
+        lines = f.readlines()
+    res = {}
+    for line in lines:
+        if line.startswith('obsid'):
+            continue
+        if line.startswith('#'):
+            continue
+        if len(line.split()) == 0:
+            continue
+        line_list = line.split(',')
+        obsid = int(line_list[0])
+        v_str_list = [v for v in line_list[1:] if v not in ['', '\n']]
+        v_list = [float(v) for v in v_str_list]
+        v_arr = np.array(v_list)
+        res[obsid] = v_arr
+    return res
+
+
 def read_spectrum(fpath: str):
     """
     Read a spectrum from a fits file.

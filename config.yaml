@@ -10,6 +10,7 @@ instrumental_broadening: 1800
 carbon: 0.0
 
 # analysis parameters
+skip_analysed: True
 norm_type: divide
 moving_average_window: 51
 cut_min: 3900

@@ -8,6 +8,7 @@ from plotter import (
     plot_shifted_spectrum_segs, 
 )
 from toolkits import (
+    read_results, 
     read_spectrum, 
     gen_model_spectrum_name, 
     read_model_spectrum,
@@ -171,6 +172,17 @@ if __name__ == '__main__':
 
     plot_min, plot_max = float(config['plot_min']), float(config['plot_max'])
 
+    skip_analysed = config['skip_analysed']
+
+    # get analysed obsid list
+    obs_id_analysed = []
+    if skip_analysed:
+        res_file_path = os.path.join(result_dir, 'results.txt')
+        if os.path.exists(res_file_path):
+            res_analysed = read_results(res_file_path)
+            for this_id in res_analysed['obsid']:
+                obs_id_analysed.append(int(this_id))
+
     # --------------------------------------------------
     # Load the catalog
     # --------------------------------------------------
@@ -184,26 +196,59 @@ if __name__ == '__main__':
     fpaths = [os.path.join(spec_dir, f) for f in files]
     nfiles = len(fpaths)
 
+    # --------------------------------------------------
+    # Check result files
+    # --------------------------------------------------
     result_path = os.path.join(result_dir, 'results.txt')
     result_v_path = os.path.join(result_dir, 'results_v.txt')
     result_corr_path = os.path.join(result_dir, 'results_corr.txt')
 
-    file_result = open(result_path, 'w', encoding='utf-8')
-    file_result.write('obsid,v_shift_mean,v_shift_std,corr_mean,corr_std,v_lamost,spid,fiberid,\n')
-    file_result_v = open(result_v_path, 'w', encoding='utf-8')
-    file_result_v.write('obsid,')
-    file_result_corr = open(result_corr_path, 'w', encoding='utf-8')
-    file_result_corr.write('obsid,')
-    n_seg = len(np.arange(wl_min, wl_max, wl_seg))
-    for i in range(n_seg):
-        file_result_v.write(f'v_{i},')
-        file_result_corr.write(f'corr_{i},')
-    file_result_v.write('\n')
-    file_result_corr.write('\n')
+    header = 'obsid,v_shift_mean,v_shift_std,corr_mean,corr_std,v_lamost,spid,fiberid,\n'
+    if (not os.path.exists(result_path)) or (not skip_analysed):
+        file_result = open(result_path, 'w', encoding='utf-8')
+        file_result.write(header)
+    else:
+        with open(result_path, 'r', encoding='utf-8') as file_result:
+            file_header = file_result.readline()
+            if file_header != header:
+                raise ValueError(f'Invalid header format for results file! Check {result_path}')
+        file_result = open(result_path, 'a', encoding='utf-8')
 
+    n_seg = len(np.arange(wl_min, wl_max, wl_seg))
+
+    header = 'obsid,' + ','.join([f'v_{i}' for i in range(n_seg)]) + ',\n'
+    if not os.path.exists(result_v_path) or (not skip_analysed):
+        file_result_v = open(result_v_path, 'w', encoding='utf-8')
+        file_result_v.write(header)
+    else:
+        with open(result_v_path, 'r', encoding='utf-8') as file_result_v:
+            file_header = file_result_v.readline()
+            if file_header != header:
+                raise ValueError(f'Invalid header format for results file! Check {result_v_path}')
+        file_result_v = open(result_v_path, 'a', encoding='utf-8')
+
+    header = 'obsid,' + ','.join([f'corr_{i}' for i in range(n_seg)]) + ',\n'
+    if not os.path.exists(result_corr_path) or (not skip_analysed):
+        file_result_corr = open(result_corr_path, 'w', encoding='utf-8')
+        file_result_corr.write(header)
+    else:
+        with open(result_corr_path, 'r', encoding='utf-8') as file_result_corr:
+            file_header = file_result_corr.readline()
+            if file_header != header:
+                raise ValueError(f'Invalid header format for results file! Check {result_corr_path}')
+        file_result_corr = open(result_corr_path, 'a', encoding='utf-8')
+        
+    
+    # --------------------------------------------------
+    # Start the analysis for each spectrum
+    # --------------------------------------------------
+    
     for idx, fpath in enumerate(fpaths):
         print(f'\nNow {idx+1}/{nfiles} ', fpath)
         wl, flux, obs_id = read_spectrum(fpath)
+        if obs_id in obs_id_analysed:
+            print(f'{obs_id} has been analysed, skip it')
+            continue
         # get the model spectrum
         cataline = cata[cata['obsid'] == obs_id]
         if len(cataline) == 0:
