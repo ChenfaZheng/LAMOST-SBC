@@ -2,6 +2,11 @@ from downloader import (
     download_fits_from_dr7, 
     download_model_spectrum, 
 )
+from plotter import (
+    plot_spectrum,
+    plot_corrs, 
+    plot_shifted_spectrum_segs, 
+)
 from toolkits import (
     read_spectrum, 
     gen_model_spectrum_name, 
@@ -34,6 +39,12 @@ def download_spectrum():
     ]
     for obs_id in obs_ids:
         download_fits_from_dr7(obs_id, save_dir)
+
+
+def clear_generated_figures(fig_dir):
+    for f in os.listdir(fig_dir):
+        if f.endswith('.png'):
+            os.remove(os.path.join(fig_dir, f))
 
 
 def spectrum_args_gridder(
@@ -125,9 +136,10 @@ def spectrum_args_gridder(
             np.arange(4, 5 + 0.5, 0.5), logg
         )
     return ins, metal, carbon, alpha, teff, logg
-    
 
-def main():
+
+
+if __name__ == '__main__':
     # --------------------------------------------------
     # Read the configuration file
     # --------------------------------------------------
@@ -142,6 +154,9 @@ def main():
     if not os.path.exists(fig_save_dir):
         os.makedirs(fig_save_dir)
     result_path = config['result_path']
+
+    # clear_generated_figures(fig_save_dir)
+    # clear_generated_figures(spec_dir)
     
     ins = float(config['instrumental_broadening'])  # Instrumental broadening
     carbon = float(config['carbon'])  # Carbon
@@ -149,6 +164,7 @@ def main():
 
     cut_min, cut_max = float(config['cut_min']), float(config['cut_max'])
     wl_min, wl_max, wl_step = float(config['wl_min']), float(config['wl_max']), float(config['wl_step'])
+    wl_seg = float(config['wl_seg'])
     v_shift_min, v_shift_max, v_shift_step = float(config['v_shift_min']), float(config['v_shift_max']), float(config['v_shift_step'])
 
     plot_min, plot_max = float(config['plot_min']), float(config['plot_max'])
@@ -166,10 +182,14 @@ def main():
     fpaths = [os.path.join(spec_dir, f) for f in files]
     nfiles = len(fpaths)
     results_id = []
-    results_corr = []
-    results_v = []
+    results_v_mean = []
+    results_v_std = []
+    results_v_bests = []
+    results_corr_mean = []
+    results_corr_std = []
+    results_corr_bests = []
     for idx, fpath in enumerate(fpaths):
-        print(f'Now {idx+1}/{nfiles} ', fpath)
+        print(f'\nNow {idx+1}/{nfiles} ', fpath)
         wl, flux, obs_id = read_spectrum(fpath)
         # get the model spectrum
         cataline = cata[cata['obsid'] == obs_id]
@@ -208,81 +228,124 @@ def main():
         # Preprocessing the spectrum
         # --------------------------------------------------
         # target spectrum
-        flux = moving_average(flux, n=mv_window)
-        wl, flux = normalization(wl, flux)
+        flux_ma = moving_average(flux, n=mv_window)
+        wl_n, flux_n = normalization(wl, flux_ma)
         # model spectrum
-        fluxm = moving_average(fluxm, n=mv_window)
-        wlm, fluxm = normalization(wlm, fluxm)
+        fluxm_ma = moving_average(fluxm, n=mv_window)
+        wlm_n, fluxm_n = normalization(wlm, fluxm_ma)
         # shift the model spectrum on the wavelength by velocity
         v_shifts = np.arange(v_shift_min, v_shift_max + v_shift_step, v_shift_step)
-        wlms = [shift_with_velocity(wlm, v) for v in v_shifts]
-        fluxms = [fluxm] * len(v_shifts)
+        wlm_ns = [shift_with_velocity(wlm_n, v) for v in v_shifts]
+        fluxm_ns = [fluxm_n] * len(v_shifts)
         # --------------------------------------------------
         # Interpolate the spectrum
         # --------------------------------------------------
         # cut the spectrums
-        wl, flux = wave_cut(wl, flux, cut_min, cut_max)
+        wl_n, flux_n = wave_cut(wl_n, flux_n, cut_min, cut_max)
         for i, v in enumerate(v_shifts):
-            wlms[i], fluxms[i] = wave_cut(wlms[i], fluxms[i], cut_min, cut_max)
+            wlm_ns[i], fluxm_ns[i] = wave_cut(wlm_ns[i], fluxm_ns[i], cut_min, cut_max)
         # interpolate the spectrums
-        f_target = interp1d(wl, flux)
-        f_models = [interp1d(wlms[i], fluxms[i]) for i in range(len(v_shifts))]
-        # set resample wavelength
-        wlr = np.arange(wl_min, wl_max + wl_step, wl_step)
+        f_target = interp1d(wl_n, flux_n)
+        f_models = [interp1d(wlm_ns[i], fluxm_ns[i]) for i in range(len(v_shifts))]
+        # set resample wavelengths
+        wlrs = []
+        for wlr_tag in np.arange(wl_min, wl_max, wl_seg):
+            wlr_seg = np.arange(wlr_tag, wlr_tag + wl_seg, wl_step)
+            wlrs.append(wlr_seg)
         # --------------------------------------------------
         # Check the correlation
         # --------------------------------------------------
         corrs = []
-        for i, v in enumerate(v_shifts):
-            corr = pearsonr(f_target(wlr), f_models[i](wlr))[0]
-            corrs.append(corr)
-        corr_max_arg = np.argmax(corrs)
-        v_shift_best = v_shifts[corr_max_arg]
-        print(f'v_shift_best = {v_shift_best}')
-        wlm_best = shift_with_velocity(wlm, v_shift_best)
-        fluxm_best = fluxm
+        v_peaks = []
+        corr_peaks = []
+        wl_seg_bests = []
+        flux_seg_bests = []
+        for i, wlr_seg in enumerate(wlrs):
+            corrs_seg = []
+            for j, v in enumerate(v_shifts):
+                corr = pearsonr(f_target(wlr_seg), f_models[j](wlr_seg))[0]
+                corrs_seg.append(corr)
+            corrs_seg = np.array(corrs_seg)
+            corrs.append(corrs_seg)
+            # get the peak of the correlation
+            corr_max_arg = np.argmax(corrs_seg)
+            len_seg = len(corrs_seg)
+            peak_width = int(len_seg * 0.05)
+            opt_width = peak_width if peak_width > 6 else 6
+            corr_idxs = np.arange(len_seg)
+            corr_peak_mask = (corr_idxs >= corr_max_arg - opt_width) & (corr_idxs <= corr_max_arg + opt_width)
+            corr_seg_peak = corrs_seg[corr_peak_mask]
+            v_shift_peak = v_shifts[corr_peak_mask]
+            # order 2 polynomial fit
+            peak_paras = np.polyfit(v_shift_peak, corr_seg_peak, 2)
+            # y = a*x**2 + b*x + c
+            a, b, c = peak_paras
+            v_peak = -b / (2 * a)
+            corr_peak = a * v_peak ** 2 + b * v_peak + c
+            if a > 0:
+                print(f'order 2 polynomial fit failed to find a peak with a < 0, use the max value instead')
+                v_peak = v_shifts[corr_max_arg]
+                corr_peak = corrs_seg[corr_max_arg]
+            elif v_peak < v_shift_min or v_peak > v_shift_max:
+                print(f'v_peak {v_peak:.2f} is out of range [{v_shift_min}, {v_shift_max}], set to nearest bound')
+                v_peak = v_shift_min if v_peak < v_shift_min else v_shift_max
+                corr_peak = corrs_seg[np.argmin(np.abs(v_shifts - v_peak))]
+            v_peaks.append(v_peak)
+            corr_peaks.append(corr_peak)
+            # shift target spectrum
+            wl_seg_best = shift_with_velocity(wlr_seg, -v_peak)
+            flux_seg_best = f_target(wlr_seg)
+            wl_seg_bests.append(wl_seg_best)
+            flux_seg_bests.append(flux_seg_best)
+        corrs = np.array(corrs)
+        v_peaks = np.array(v_peaks)
+        v_peaks_mean = np.mean(v_peaks)
+        v_peaks_std = np.std(v_peaks)
+        corr_peaks = np.array(corr_peaks)
+        corr_peaks_mean = np.mean(corr_peaks)
+        corr_peaks_std = np.std(corr_peaks)
+        print(f'v_peaks_mean {v_peaks_mean:.2f} std {v_peaks_std:.2f}')
 
         # --------------------------------------------------
         # Save the result
         # --------------------------------------------------
-        fig1 = plt.figure(figsize=(10, 5))
-        ax1 = fig1.add_subplot(211)
-        ax1.plot(wl, flux, 'r.', alpha=0.8, label='target normalized')
-        ax1.plot(wlm_best, fluxm_best, 'k-', alpha=0.5, label=f'model v={v_shift_best} km/s')
-        ax1.set_xlabel('wavelength (A)')
-        ax1.set_ylabel('flux')
-        ax1.set_xlim(plot_min, plot_max)
-        ax1.legend()
-        ax2 = fig1.add_subplot(212)
-        ax2.plot(wlm, fluxm, 'k.', alpha=0.8, label='model normalized')
-        ax2.set_xlabel('wavelength (A)')
-        ax2.set_ylabel('flux')
-        ax2.set_xlim(plot_min, plot_max)
-        ax2.legend()
-        plt.tight_layout()
-        fig1.savefig(os.path.join(fig_save_dir, f'{obs_id:d}_spectrum.png'), dpi=300)
-        plt.close()
+        # plot target spectrum
+        spec_min, spec_max = np.min(wl), np.max(wl)
+        spec_title = f'{obs_id:d} spectrum'
+        spec_path = os.path.join(fig_save_dir, f'{obs_id:d}_spectrum.png')
+        plot_spectrum(wl, flux, [spec_min, spec_max], spec_title, spec_path)
 
-        fig2 = plt.figure(figsize=(10, 3))
-        ax = fig2.add_subplot(111)
-        ax.plot(v_shifts, corrs, 'k.', alpha=0.8, label='correlation')
-        ax.axvline(v_shift_best, color='r', alpha=0.8, label=f'v_shift = {v_shift_best} km/s')
-        ax.set_xlabel('velocity shift (km/s)')
-        ax.set_ylabel('correlation coefficient')
-        ax.legend()
-        plt.tight_layout()
-        fig2.savefig(os.path.join(fig_save_dir, f'{obs_id:d}_correlation.png'), dpi=300)
-        plt.close()
+        # plot model spectrum
+        model_title = f'{obs_id:d} model spectrum {model_fname}'
+        model_path = os.path.join(fig_save_dir, f'{obs_id:d}_model_spectrum.png')
+        plot_spectrum(wlm, fluxm, [spec_min, spec_max], model_title, model_path)
+
+        # plot correlations
+        corr_path = os.path.join(fig_save_dir, f'{obs_id:d}_correlation.png')
+        corr_labels = []
+        for wlr in wlrs:
+            corr_labels.append(f'{wlr[0]:.0f}-{wlr[-1]:.0f}')
+        plot_corrs(v_shifts, corrs, v_peaks, corr_peaks, corr_labels, corr_path)
+
+        # plot shifted spectrums
+        spec_shift_title = f'{obs_id:d} spectrum shifted'
+        spec_shift_path = os.path.join(fig_save_dir, f'{obs_id:d}_spectrum_shift.png')
+        spec_shift_labels = []
+        for v_peak in v_peaks:
+            spec_shift_labels.append(f'{v_peak:.2f}')
+        plot_shifted_spectrum_segs(wl_seg_bests, flux_seg_bests, wlm_n, fluxm_n, spec_shift_labels, [cut_min, cut_max], spec_shift_title, spec_shift_path)
 
         # save the result
         results_id.append(obs_id)
-        results_v.append(v_shift_best)
-        results_corr.append(corrs[corr_max_arg])
+        results_v_mean.append(v_peaks_mean)
+        results_v_std.append(v_peaks_std)
+        results_corr_mean.append(corr_peaks_mean)
+        results_corr_std.append(corr_peaks_std)
+        results_v_bests.append(v_peaks)
+        results_corr_bests.append(corr_peaks)
+
     with open(result_path, 'w') as f:
-        f.write('obsid,v_shift,corr\n')
+        f.write('obsid,v_shift_mean,v_shift_std,corr_mean,corr_std\n')
         for i in range(len(results_id)):
-            f.write(f'{results_id[i]},{results_v[i]},{results_corr[i]}\n')
-
-
-if __name__ == '__main__':
-    main()
+            f.write(f'{results_id[i]:d},{results_v_mean[i]:.3f},{results_v_std[i]:.3f},{results_corr_mean[i]:.3f},{results_corr_std[i]:.3f},')
+            f.write('\n')

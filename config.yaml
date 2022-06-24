@@ -15,6 +15,7 @@ cut_min: 3900
 cut_max: 9100
 wl_min: 4000
 wl_max: 9000
+wl_seg: 500
 wl_step: 1
 v_shift_min: -1000
 v_shift_max: 1000
