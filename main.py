@@ -156,7 +156,7 @@ if __name__ == '__main__':
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
 
-    clear_generated_figures(fig_save_dir)
+    # clear_generated_figures(fig_save_dir)
     
     ins = float(config['instrumental_broadening'])  # Instrumental broadening
     carbon = float(config['carbon'])  # Carbon
@@ -191,6 +191,8 @@ if __name__ == '__main__':
     results_corr_std = []
     results_corr_bests = []
     results_v_lamost = []
+    results_spid = []
+    results_fiberid = []
     for idx, fpath in enumerate(fpaths):
         print(f'\nNow {idx+1}/{nfiles} ', fpath)
         wl, flux, obs_id = read_spectrum(fpath)
@@ -206,6 +208,8 @@ if __name__ == '__main__':
         carbon = float(carbon)  # pre-defined in the config file
         ins = float(ins)  # pre-defined in the config file
         rv = float(cataline['rv'][0])   # Heliocentric radial velocity obtained by the LASP
+        spid = int(cataline['spid'][0])
+        fiberid = int(cataline['fiberid'][0])
         try:
             ins, metal, carbon, alpha, teff, logg = spectrum_args_gridder(
                 ins, metal, carbon, alpha, teff, logg
@@ -393,12 +397,14 @@ if __name__ == '__main__':
         results_v_bests.append(v_peaks)
         results_corr_bests.append(corr_peaks)
         results_v_lamost.append(rv)
+        results_spid.append(spid)
+        results_fiberid.append(fiberid)
 
     result_path = os.path.join(result_dir, 'results.txt')
     with open(result_path, 'w', encoding='utf-8') as f:
-        f.write('obsid,v_shift_mean,v_shift_std,corr_mean,corr_std,v_lamost,\n')
+        f.write('obsid,v_shift_mean,v_shift_std,corr_mean,corr_std,v_lamost,spid,fiberid,\n')
         for i in range(len(results_id)):
-            f.write(f'{results_id[i]:d},{results_v_mean[i]:.3f},{results_v_std[i]:.3f},{results_corr_mean[i]:.3f},{results_corr_std[i]:.3f},{results_v_lamost[i]:.3f},')
+            f.write(f'{results_id[i]:d},{results_v_mean[i]:.3f},{results_v_std[i]:.3f},{results_corr_mean[i]:.3f},{results_corr_std[i]:.3f},{results_v_lamost[i]:.3f},{results_spid[i]:d},{results_fiberid[i]:d},')
             f.write('\n')
 
     result_v_path = os.path.join(result_dir, 'results_v.txt')
