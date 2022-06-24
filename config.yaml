@@ -3,13 +3,14 @@ spectrum_dir: ./spectrums/
 model_dir: ./models/
 catalog_path: ./catalogs/dr7_v2.0_LRS_stellar.fits
 figure_dir: ./figures
-result_path: ./results.txt
+result_dir: ./results
 
 # stellar parameters
 instrumental_broadening: 1800
 carbon: 0.0
 
 # analysis parameters
+norm_type: divide
 moving_average_window: 51
 cut_min: 3900
 cut_max: 9100
@@ -20,6 +21,7 @@ wl_step: 1
 v_shift_min: -1000
 v_shift_max: 1000
 v_shift_step: 5
+opt_method: cubic
 
 # plot parameters
 plot_min: 1000

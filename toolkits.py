@@ -115,16 +115,23 @@ def moving_average(x, n=3):
     return np.convolve(x, np.ones(n), 'same') / n
 
 
-def normalization(wl, flux):
+def normalization(wl, flux, norm_type='mean', flux_raw=None):
     """
     Normalize the spectrum.
     """
-    max_val = np.max(flux)
-    return wl, flux / max_val
-    # mean = np.mean(flux)
-    # std = np.std(flux)
-    # flux = (flux - mean) / std
-    # return wl, flux
+    if norm_type in ['max']:
+        max_val = np.max(flux)
+        return wl, flux / max_val
+    if norm_type in ['mean']:
+        mean = np.mean(flux)
+        std = np.std(flux)
+        flux = (flux - mean) / std
+        return wl, flux
+    if norm_type in ['divide']:
+        if flux_raw is None:
+            raise ValueError('flux_raw is required for normalization type "devide"')
+        return wl, flux_raw / flux
+    raise ValueError(f'Unknown normalization type: {norm_type}')
 
 
 def shift_with_velocity(wl, v):
