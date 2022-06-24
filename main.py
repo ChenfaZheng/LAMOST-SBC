@@ -183,16 +183,24 @@ if __name__ == '__main__':
     files = [f for f in files if f.endswith('.fits')]
     fpaths = [os.path.join(spec_dir, f) for f in files]
     nfiles = len(fpaths)
-    results_id = []
-    results_v_mean = []
-    results_v_std = []
-    results_v_bests = []
-    results_corr_mean = []
-    results_corr_std = []
-    results_corr_bests = []
-    results_v_lamost = []
-    results_spid = []
-    results_fiberid = []
+
+    result_path = os.path.join(result_dir, 'results.txt')
+    result_v_path = os.path.join(result_dir, 'results_v.txt')
+    result_corr_path = os.path.join(result_dir, 'results_corr.txt')
+
+    file_result = open(result_path, 'w', encoding='utf-8')
+    file_result.write('obsid,v_shift_mean,v_shift_std,corr_mean,corr_std,v_lamost,spid,fiberid,\n')
+    file_result_v = open(result_v_path, 'w', encoding='utf-8')
+    file_result_v.write('obsid,')
+    file_result_corr = open(result_corr_path, 'w', encoding='utf-8')
+    file_result_corr.write('obsid,')
+    n_seg = len(np.arange(wl_min, wl_max, wl_seg))
+    for i in range(n_seg):
+        file_result_v.write(f'v_{i},')
+        file_result_corr.write(f'corr_{i},')
+    file_result_v.write('\n')
+    file_result_corr.write('\n')
+
     for idx, fpath in enumerate(fpaths):
         print(f'\nNow {idx+1}/{nfiles} ', fpath)
         wl, flux, obs_id = read_spectrum(fpath)
@@ -389,44 +397,27 @@ if __name__ == '__main__':
         )
 
         # save the result
-        results_id.append(obs_id)
-        results_v_mean.append(v_peaks_mean)
-        results_v_std.append(v_peaks_std)
-        results_corr_mean.append(corr_peaks_mean)
-        results_corr_std.append(corr_peaks_std)
-        results_v_bests.append(v_peaks)
-        results_corr_bests.append(corr_peaks)
-        results_v_lamost.append(rv)
-        results_spid.append(spid)
-        results_fiberid.append(fiberid)
-
-    result_path = os.path.join(result_dir, 'results.txt')
-    with open(result_path, 'w', encoding='utf-8') as f:
-        f.write('obsid,v_shift_mean,v_shift_std,corr_mean,corr_std,v_lamost,spid,fiberid,\n')
-        for i in range(len(results_id)):
-            f.write(f'{results_id[i]:d},{results_v_mean[i]:.3f},{results_v_std[i]:.3f},{results_corr_mean[i]:.3f},{results_corr_std[i]:.3f},{results_v_lamost[i]:.3f},{results_spid[i]:d},{results_fiberid[i]:d},')
-            f.write('\n')
-
-    result_v_path = os.path.join(result_dir, 'results_v.txt')
-    with open(result_v_path, 'w', encoding='utf-8') as f:
-        f.write('obsid,')
-        for i in range(len(results_v_bests[0])):
-            f.write(f'v_{i:d},')
-        f.write('\n')
-        for i in range(len(results_id)):
-            f.write(f'{results_id[i]:d},')
-            for v in results_v_bests[i]:
-                f.write(f'{v:.3f},')
-            f.write('\n')
-
-    result_corr_path = os.path.join(result_dir, 'results_corr.txt')
-    with open(result_corr_path, 'w', encoding='utf-8') as f:
-        f.write('obsid,')
-        for i in range(len(results_corr_bests[0])):
-            f.write(f'corr_{i:d},')
-        f.write('\n')
-        for i in range(len(results_id)):
-            f.write(f'{results_id[i]:d},')
-            for corr in results_corr_bests[i]:
-                f.write(f'{corr:.3f},')
-            f.write('\n')
+        file_result.write(
+            f'{obs_id:d},{v_peaks_mean:.3f},{v_peaks_std:.3f},{corr_peaks_mean:.3f},{corr_peaks_std:.3f},{rv:.3f},{spid:d},{fiberid:d},\n'
+        )
+        file_result.flush()
+        file_result_v.write(f'{obs_id:d},')
+        for v_peak in v_peaks:
+            file_result_v.write(f'{v_peak:.3f},')
+        file_result_v.write('\n')
+        file_result_v.flush()
+        file_result_corr.write(f'{obs_id:d},')
+        for corr_peak in corr_peaks:
+            file_result_corr.write(f'{corr_peak:.3f},')
+        file_result_corr.write('\n')
+        file_result_corr.flush()
+        
+        # --------------------------------------------------
+        # All done for this spectrum ! ^_^
+        # --------------------------------------------------
+        print(f'{obs_id:d} done ^_^')
+    
+    file_result.close()
+    file_result_v.close()
+    file_result_corr.close()
+    print('\nAll done ^_^\n')
