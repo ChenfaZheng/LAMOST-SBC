@@ -120,7 +120,7 @@ if __name__ == '__main__':
     obsid_arr = res_arr['obsid']
     nrows = len(v_dict[obsid_arr[0]])
     fig = plt.figure(figsize=(6, 10))
-    gs = fig.add_gridspec(nrows, hspace=0)
+    gs = fig.add_gridspec(nrows, 1, hspace=0)
     axs = gs.subplots(sharex=True)
     for i, ax in enumerate(axs):    # i for each segment
         dvs = []
@@ -142,7 +142,7 @@ if __name__ == '__main__':
 
     # histogram of v - v_lamost for all segments weighted by corr
     fig = plt.figure(figsize=(6, 10))
-    gs = fig.add_gridspec(nrows, hspace=0)
+    gs = fig.add_gridspec(nrows, 1, hspace=0)
     axs = gs.subplots(sharex=True)
     for i, ax in enumerate(axs):    # i for each segment
         dvs = []
@@ -167,7 +167,7 @@ if __name__ == '__main__':
 
     # histogram of v - v_lamost for all segments in [-200, 200]
     fig = plt.figure(figsize=(6, 10))
-    gs = fig.add_gridspec(nrows, hspace=0)
+    gs = fig.add_gridspec(nrows, 1, hspace=0)
     axs = gs.subplots(sharex=True)
     for i, ax in enumerate(axs):    # i for each segment
         dvs = []
@@ -193,7 +193,7 @@ if __name__ == '__main__':
 
     # histogram of v - v_lamost for all segments in [-100, 100]
     fig = plt.figure(figsize=(6, 10))
-    gs = fig.add_gridspec(nrows, hspace=0)
+    gs = fig.add_gridspec(nrows, 1, hspace=0)
     axs = gs.subplots(sharex=True)
     for i, ax in enumerate(axs):    # i for each segment
         dvs = []
@@ -219,7 +219,7 @@ if __name__ == '__main__':
 
     # histogram of v - v_lamost for all segments in [-50, 50]
     fig = plt.figure(figsize=(6, 10))
-    gs = fig.add_gridspec(nrows, hspace=0)
+    gs = fig.add_gridspec(nrows, 1, hspace=0)
     axs = gs.subplots(sharex=True)
     for i, ax in enumerate(axs):    # i for each segment
         dvs = []
@@ -245,7 +245,7 @@ if __name__ == '__main__':
 
     # histogram of v for all segments
     fig = plt.figure(figsize=(6, 10))
-    gs = fig.add_gridspec(nrows, hspace=0)
+    gs = fig.add_gridspec(nrows, 1, hspace=0)
     axs = gs.subplots(sharex=True)
     for i, ax in enumerate(axs):    # i for each segment
         vs = []
@@ -268,7 +268,7 @@ if __name__ == '__main__':
 
     # histogram of v for all segments in [-200, 200]
     fig = plt.figure(figsize=(6, 10))
-    gs = fig.add_gridspec(nrows, hspace=0)
+    gs = fig.add_gridspec(nrows, 1, hspace=0)
     axs = gs.subplots(sharex=True)
     for i, ax in enumerate(axs):    # i for each segment
         vs = []

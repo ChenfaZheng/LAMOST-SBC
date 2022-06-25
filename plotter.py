@@ -69,7 +69,7 @@ def plot_corrs(v_shifts, corrs, v_shift_bests, corr_bests, v_lamost, labels, sav
     if nrows != len(labels):
         raise ValueError('Number of labels must match number of corrs')
     fig = plt.figure(figsize=(6, 10))
-    gs = fig.add_gridspec(nrows, hspace=0)
+    gs = fig.add_gridspec(nrows, 1, hspace=0)
     axs = gs.subplots(sharex=True)
     for i, ax in enumerate(axs):
         corr_seg = corrs[i]
