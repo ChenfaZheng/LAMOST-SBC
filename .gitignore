@@ -16,8 +16,13 @@ test.ipynb
 catalogs/
 models/
 results/
+# results_*/
 spectrums/
+# spectrums_*/
 figures/
+figures_*/
+
+# config_*.yaml
 
 # misc
 exp1.jpg

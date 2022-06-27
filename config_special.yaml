@@ -1,0 +1,29 @@
+# file path settings
+spectrum_dir: ./spectrums_20190401_HD103621N361936B01_spec3/
+model_dir: ./models/
+catalog_path: ./catalogs/dr7_v2.0_LRS_stellar.fits
+figure_dir: ./figures_20190401_HD103621N361936B01_spec3/
+result_dir: ./results_20190401_HD103621N361936B01_spec3/
+
+# stellar parameters
+instrumental_broadening: 1800
+carbon: 0.0
+
+# analysis parameters
+skip_analysed: True
+norm_type: divide
+moving_average_window: 51
+cut_min: 3900
+cut_max: 9100
+wl_min: 4000
+wl_max: 9000
+wl_seg: 500
+wl_step: 1
+v_shift_min: -1000
+v_shift_max: 1000
+v_shift_step: 5
+opt_method: cubic
+
+# plot parameters
+plot_min: 1000
+plot_max: 12000

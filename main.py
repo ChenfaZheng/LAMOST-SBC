@@ -24,6 +24,7 @@ from scipy.stats import pearsonr
 import yaml
 
 import os
+import argparse
 
 
 def download_spectrum():
@@ -139,11 +140,15 @@ def spectrum_args_gridder(
 
 
 
-if __name__ == '__main__':
+def main(parser):
     # --------------------------------------------------
     # Read the configuration file
     # --------------------------------------------------
-    with open('config.yaml', 'r') as f:
+    # check if --config is given
+    if parser.config is None:
+        raise ValueError('--config is required')
+    # read the configuration file
+    with open(parser.config, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     spec_dir = config['spectrum_dir']
     model_dir = config['model_dir']
@@ -466,3 +471,12 @@ if __name__ == '__main__':
     file_result_v.close()
     file_result_corr.close()
     print('\nAll done ^_^\n')
+
+
+if __name__ == '__main__':
+    # get the command line arguments
+    parser = argparse.ArgumentParser(
+        description='Calculate the velocity shift of a spectrum.'
+    )
+    parser.add_argument('--config', type=str, default='config.yaml', help='config file')
+    main(parser.parse_args())
