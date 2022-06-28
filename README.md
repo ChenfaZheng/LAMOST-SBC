@@ -1,5 +1,7 @@
 # LAMOST Star-based Clibration
 
+（To be updated...）
+
 A toy implementation of the method, developed by Yuan et al, to calibrate the spectrum of the star observed by LAMOST.
 
 See also: 
